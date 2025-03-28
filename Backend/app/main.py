@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from app.routes import auth, jira
+from app.config import settings
 
-app = FastAPI(title="Organizational Portal API")
+app = FastAPI(title="Organizational Portal")
 
-# Include Routes
-app.include_router(auth.router, prefix="/auth")
-app.include_router(jira.router, prefix="/jira")
-
-@app.get("/")
-def read_root():
-    return {"message": "API is running"}
+# Include the routes from auth and jira modules
+app.include_router(auth.router)
+app.include_router(jira.router)
 
 if __name__ == "__main__":
     import uvicorn
