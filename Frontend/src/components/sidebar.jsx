@@ -1,12 +1,11 @@
-import React from "react";
+import { Link } from "react-router-dom";
 
 const Sidebar = () => {
   return (
     <div className="sidebar">
-      <a href="/">Dashboard</a>
-      <a href="/create-ticket">Create Ticket</a>
-      <a href="/reports">Reports</a>
-      {/* More menu items will be added here dynamically */}
+      <Link to="/">داشبورد</Link>
+      <Link to="/finance">مالی</Link>
+      <Link to="/reports">گزارش‌ها</Link>
     </div>
   );
 };
