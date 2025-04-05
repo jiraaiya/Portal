@@ -1,17 +1,19 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React from "react";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import CreateTicket from "./pages/CreateTicket";
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/create-ticket" element={<CreateTicket />} />
-      </Routes>
-    </Router>
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1">
+        <Topbar />
+        <div className="main-content">
+          <Dashboard />
+        </div>
+      </div>
+    </div>
   );
 }
 
