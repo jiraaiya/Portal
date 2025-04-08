@@ -1,12 +1,12 @@
 import requests
 from app.config import settings
 
-def get_jira_issues(jql_query):
+def get_jira_issues(jql_query, access_token):
     """Fetch Jira issues based on the provided JQL query and return simplified structure."""
     jira_url = f"{settings.jira_url}/rest/api/latest/search"
 
     headers = {
-        "Authorization": f"Bearer {settings.jira_api_token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
@@ -39,12 +39,12 @@ def get_jira_issues(jql_query):
     print(f"Error fetching issues: {response.status_code} - {response.text}")
     return []
 
-def get_issue_transitions(issue_key):
+def get_issue_transitions(issue_key, access_token):
     """Get available transitions for a Jira issue."""
     jira_url = f"{settings.jira_url}/rest/api/latest/issue/{issue_key}/transitions"
     
     headers = {
-        "Authorization": f"Bearer {settings.jira_api_token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json"
     }
 
@@ -65,17 +65,15 @@ def get_issue_transitions(issue_key):
         "transitions": []
     }
 
-
-
-
-def create_jira_ticket(issue):
+def create_jira_ticket(issue, access_token):
     """Create a new Jira issue."""
     jira_url = f"{settings.jira_url}/rest/api/2/issue"
-    # auth = (settings.jira_username, settings.jira_api_token)
+    
     headers = {
-        "Authorization": f"Bearer {settings.jira_api_token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json"
     }
+    
     data = {
         "fields": {
             "project": {"key": issue.project_key},
@@ -90,12 +88,12 @@ def create_jira_ticket(issue):
         return True
     return False
 
-def transition_jira_issue(issue_key, transition_id):
+def transition_jira_issue(issue_key, transition_id, access_token):
     """Transition a Jira issue to a new status."""
     jira_url = f"{settings.jira_url}/rest/api/latest/issue/{issue_key}/transitions"
     
     headers = {
-        "Authorization": f"Bearer {settings.jira_api_token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
@@ -115,16 +113,12 @@ def transition_jira_issue(issue_key, transition_id):
         "success": False
     }
 
-
-import requests
-from app.config import settings
-
-def get_jira_issue_by_key(issue_key: str):
+def get_jira_issue_by_key(issue_key: str, access_token: str):
     """Fetch a single Jira issue by its issue key."""
     jira_url = f"{settings.jira_url}/rest/api/latest/issue/{issue_key}"
 
     headers = {
-        "Authorization": f"Bearer {settings.jira_api_token}",
+        "Authorization": f"Bearer {access_token}",
         "Accept": "application/json"
     }
 

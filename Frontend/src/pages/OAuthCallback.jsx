@@ -44,8 +44,11 @@ const OAuthCallback = () => {
           localStorage.setItem("token_expires_at", Date.now() + expires_in * 1000);
         }
 
+        // Set authentication state
+        window.dispatchEvent(new Event('authStateChanged'));
+
         console.log("Successfully authenticated with Jira");
-        navigate("/dashboard");
+        navigate("/");
       } catch (err) {
         console.error("OAuth error:", err);
         const errorMessage = err.response?.data?.detail || err.message || "Failed to authenticate with Jira";
@@ -69,10 +72,10 @@ const OAuthCallback = () => {
           <p className="font-bold">Authentication Error</p>
           <p>{error}</p>
           <button
-            onClick={() => window.location.href = "/"}
+            onClick={() => window.location.href = "/login"}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            Return to Home
+            Return to Login
           </button>
         </div>
       ) : null}
