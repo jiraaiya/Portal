@@ -1,84 +1,130 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+// import { authenticateUser } from "../api/jira";
 import axios from "axios";
 
 const OAuthCallback = () => {
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      const error = urlParams.get("error");
-      const errorDescription = urlParams.get("error_description");
-
-      if (error) {
-        setError(`OAuth Error: ${error} - ${errorDescription || "No description provided"}`);
-        setLoading(false);
-        return;
-      }
-
-      if (!code) {
-        setError("Authorization code not received from Jira");
-        setLoading(false);
-        return;
-      }
-
+    const handleCallback = async () => {
       try {
-        console.log("Exchanging authorization code for access token...");
-        const response = await axios.get(`http://localhost:8000/auth/callback?code=${code}`);
-        const { access_token, refresh_token, expires_in } = response.data;
+        // Get the authorization code from URL parameters
+        const params = new URLSearchParams(location.search);
+        const code = params.get("code");
+        const error = params.get("error");
+        const errorDescription = params.get("error_description");
+        const osDestination = params.get("os_destination");
+
+        console.log("OAuth callback received:", {
+          code: code ? "Present" : "Missing",
+          error,
+          errorDescription,
+          osDestination,
+        });
+
+        // If we have an os_destination parameter, extract the code from it
+        let authCode = code;
+        if (!authCode && osDestination) {
+          try {
+            const destinationUrl = new URL(osDestination);
+            authCode = destinationUrl.searchParams.get("code");
+            console.log("Extracted code from os_destination:", authCode);
+          } catch (e) {
+            console.error("Error parsing os_destination:", e);
+          }
+        }
+
+        // Check if we've already processed this code
+        const processedCode = localStorage.getItem("processed_auth_code");
+        if (processedCode === authCode) {
+          console.log("This authorization code has already been processed");
+          navigate("/dashboard");
+          return;
+        }
+
+        if (error) {
+          console.error("OAuth error:", error, errorDescription);
+          navigate("/login");
+          return;
+        }
+
+        if (!authCode) {
+          console.error("No authorization code received");
+          navigate("/login");
+          return;
+        }
+
+        // Exchange the authorization code for an access token
+        const response = await axios.get(`http://localhost:8000/auth/callback?code=${authCode}`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        console.log("Authentication response:", response.data);
+        // console.log("Token response:", response.data);
+
+        const { access_token, refresh_token, expires_in, scope, token_type, user } = response.data;
 
         if (!access_token) {
-          throw new Error("No access token received from server");
+          console.error("No access token in response");
+          navigate("/login");
+          return;
         }
 
-        // Save tokens in localStorage
+        // Save tokens to localStorage
         localStorage.setItem("access_token", access_token);
-        if (refresh_token) {
-          localStorage.setItem("refresh_token", refresh_token);
-        }
-        if (expires_in) {
-          localStorage.setItem("token_expires_at", Date.now() + expires_in * 1000);
+        localStorage.setItem("refresh_token", refresh_token);
+        localStorage.setItem("token_expires_at", Date.now() + expires_in * 1000);
+        localStorage.setItem("token_scope", scope);
+        localStorage.setItem("token_type", token_type);
+
+        // Save user information
+        if (user) {
+          localStorage.setItem("user_name", user.name);
+          localStorage.setItem("user_email", user.email);
+          localStorage.setItem("user_account_id", user.accountId);
         }
 
-        // Set authentication state
-        window.dispatchEvent(new Event('authStateChanged'));
+        // Mark this code as processed
+        localStorage.setItem("processed_auth_code", authCode);
 
-        console.log("Successfully authenticated with Jira");
-        navigate("/");
-      } catch (err) {
-        console.error("OAuth error:", err);
-        const errorMessage = err.response?.data?.detail || err.message || "Failed to authenticate with Jira";
-        setError(`Authentication Error: ${errorMessage}`);
-        setLoading(false);
+        // Verify tokens are saved
+        console.log("Tokens saved to localStorage:", {
+          access_token: localStorage.getItem("access_token") ? "Present" : "Missing",
+          refresh_token: localStorage.getItem("refresh_token") ? "Present" : "Missing",
+          expires_at: localStorage.getItem("token_expires_at") ? "Present" : "Missing",
+          user_name: localStorage.getItem("user_name") || "Not available",
+        });
+
+        // Dispatch an event to notify that auth state has changed
+        window.dispatchEvent(new Event("authStateChanged"));
+
+        // Redirect to dashboard
+        navigate("/dashboard");
+      } catch (error) {
+        console.error("Error in OAuth callback:", error);
+        if (error.response) {
+          console.error("Error response:", {
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          });
+        }
+        navigate("/login");
       }
     };
 
-    handleOAuthCallback();
-  }, [navigate]);
+    handleCallback();
+  }, [navigate, location]);
 
   return (
-    <div className="p-4 text-center">
-      {loading ? (
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-          <p>Authenticating with Jira...</p>
-        </div>
-      ) : error ? (
-        <div className="text-red-600">
-          <p className="font-bold">Authentication Error</p>
-          <p>{error}</p>
-          <button
-            onClick={() => window.location.href = "/login"}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Return to Login
-          </button>
-        </div>
-      ) : null}
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">در حال تکمیل فرآیند ورود...</p>
+      </div>
     </div>
   );
 };

@@ -7,22 +7,8 @@ import Finance from "./pages/Finance";
 import OAuthCallback from "./pages/OAuthCallback";
 import Login from "./pages/Login";
 import Reports from "./pages/Reports";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-
-// Protected route component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  return children;
-};
+import { AuthProvider } from "./context/AuthContext";
+import PrivateRoute from "./components/PrivateRoute";
 
 // Layout component for authenticated pages
 const AuthenticatedLayout = ({ children }) => {
@@ -46,38 +32,41 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<OAuthCallback />} />
+          <Route path="/login.jsp" element={<OAuthCallback />} />
           
           {/* Protected routes */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <AuthenticatedLayout>
                   <Dashboard />
                 </AuthenticatedLayout>
-              </ProtectedRoute>
+              </PrivateRoute>
             }
           />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
+          {/* Protected routes */}
           <Route
             path="/finance"
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <AuthenticatedLayout>
                   <Finance />
                 </AuthenticatedLayout>
-              </ProtectedRoute>
+              </PrivateRoute>
             }
           />
           
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <AuthenticatedLayout>
                   <Reports />
                 </AuthenticatedLayout>
-              </ProtectedRoute>
+              </PrivateRoute>
             }
           />
         </Routes>

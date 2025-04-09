@@ -10,7 +10,19 @@ export default defineConfig({
       cert: fs.readFileSync('./cert.pem'),
     },
     host: 'local.myapp.com',
-    port: 3000
+    port: 3000,
+    proxy: {
+      '/auth': {
+        target: 'https://127.0.0.1:8443',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api': {
+        target: 'https://127.0.0.1:8443',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 });
 

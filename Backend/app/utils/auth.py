@@ -1,18 +1,15 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from app.config import settings
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl=settings.jira_oauth_auth_url,
-    tokenUrl=settings.jira_oauth_token_url,
-)
+security = HTTPBearer()
 
-async def get_current_user_token(token: str = Depends(oauth2_scheme)):
+async def get_current_user_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Get the current user's Jira access token."""
-    if not token:
+    if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return token 
+    return credentials.credentials 
