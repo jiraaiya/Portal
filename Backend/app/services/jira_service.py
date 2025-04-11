@@ -66,7 +66,9 @@ def get_jira_issues(jql_query, access_token):
                     "assignee": (
                         fields.get("assignee", {}).get("displayName")
                         if fields.get("assignee") else "بدون مسئول"
-                    )
+                    ),
+                    "project": fields.get("project", {}).get("name", ""),
+                    "issueType": fields.get("issuetype", {}).get("name", "")
                 })
 
             return simplified_issues

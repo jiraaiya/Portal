@@ -59,6 +59,8 @@ const JiraTable = ({ issueData, onUpdateIssue }) => {
             <th className="px-6 py-4 border-b">خلاصه</th>
             <th className="px-6 py-4 border-b">وضعیت</th>
             <th className="px-6 py-4 border-b">مسئول</th>
+            <th className="px-6 py-4 border-b">پروژه</th>
+            <th className="px-6 py-4 border-b">نوع</th>
             <th className="px-6 py-4 border-b">انتقال</th>
           </tr>
         </thead>
@@ -69,6 +71,8 @@ const JiraTable = ({ issueData, onUpdateIssue }) => {
               <td className="px-6 py-3 border-b">{issue.summary}</td>
               <td className="px-6 py-3 border-b">{issue.status}</td>
               <td className="px-6 py-3 border-b">{issue.assignee}</td>
+              <td className="px-6 py-3 border-b">{issue.project}</td>
+              <td className="px-6 py-3 border-b">{issue.issueType}</td>
               <td className="px-6 py-3 border-b">
                 <button
                   onClick={() => fetchTransitions(issue.key)} // Fetch transitions when clicked

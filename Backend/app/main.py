@@ -1,26 +1,24 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth, jira
 from app.config import settings
+from app.database import get_db
+from sqlalchemy.orm import Session
 
 app = FastAPI(title="Organizational Portal")
 
-# CORS settings
-origins = [
-    "http://localhost:5173",  # React dev server
-    # "http://localhost:3000",  # Alternative React port
-    # "https://127.0.0.1:8443",  # Jira server
-    "https://local.myapp.com:3000",  # Custom domain for OAuth callback
-    "http://localhost:8000",  # Backend server
-]
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,            # Which frontend domains can access this backend
+    allow_origins=[
+        "https://local.myapp.com:3000",  # Frontend URL
+        "http://localhost:3000",         # Local development
+    ],
     allow_credentials=True,
-    allow_methods=["*"],              # Allow all HTTP methods
-    allow_headers=["*"],              # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
 # Include the routes from auth and jira modules
 app.include_router(auth.router)
 app.include_router(jira.router)

@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 from urllib.parse import urlencode
 from app.config import settings  # assuming your settings are here
 import urllib3
 from app.services.jira_service import get_user_info
+from pydantic import BaseModel
 
 # Disable SSL verification warnings for local development
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 router = APIRouter()
+
+class AuthCallbackRequest(BaseModel):
+    code: str
 
 @router.get("/auth/login")
 def login_with_jira():
@@ -19,17 +24,12 @@ def login_with_jira():
         "redirect_uri": settings.jira_oauth_redirect_uri,
         "scope": "WRITE"
     })
-    print(f"Redirecting to: {settings.jira_oauth_auth_url}?{query}")
 
     return RedirectResponse(f"{settings.jira_oauth_auth_url}?{query}")
 
-
-@router.get("/auth/callback")
-def jira_auth_callback(request: Request, code: str = None, state: str = None):
-    print(f"Auth callback received with code: {code}")
-    
-    if not code:
-        print("No authorization code provided")
+@router.post("/auth/callback")
+async def jira_auth_callback(request: AuthCallbackRequest):
+    if not request.code:
         raise HTTPException(status_code=400, detail="Authorization code not provided")
 
     try:
@@ -37,12 +37,9 @@ def jira_auth_callback(request: Request, code: str = None, state: str = None):
             "grant_type": "authorization_code",
             "client_id": settings.jira_oauth_client_id,
             "client_secret": settings.jira_oauth_client_secret,
-            "code": code,
+            "code": request.code,
             "redirect_uri": settings.jira_oauth_redirect_uri,
         }
-        
-        print(f"Token request data: {data}")
-        print(f"Token URL: {settings.jira_oauth_token_url}")
 
         # Disable SSL verification for local development
         token_response = requests.post(
@@ -51,16 +48,10 @@ def jira_auth_callback(request: Request, code: str = None, state: str = None):
             verify=False  # Disable SSL verification
         )
 
-        print(f"Token response status: {token_response.status_code}")
-        print(f"Token response headers: {token_response.headers}")
-        print(f"Token response body: {token_response.text}")
-
         if token_response.status_code == 400:
             error_data = token_response.json()
-            print(f"Token error: {error_data}")
             if error_data.get("error") == "invalid_grant":
                 # If the code was already used, redirect back to login
-                print("Invalid grant, redirecting to login")
                 return RedirectResponse(url="/auth/login")
             raise HTTPException(
                 status_code=400,
@@ -68,14 +59,12 @@ def jira_auth_callback(request: Request, code: str = None, state: str = None):
             )
 
         if token_response.status_code != 200:
-            print(f"Token response error: {token_response.status_code} - {token_response.text}")
             raise HTTPException(
                 status_code=token_response.status_code, 
                 detail=f"Failed to fetch access token: {token_response.text}"
             )
 
         token_data = token_response.json()
-        print(f"Token data: {token_data}")
         
         # Validate the token by making a request to the Jira API
         access_token = token_data.get("access_token")
@@ -90,26 +79,17 @@ def jira_auth_callback(request: Request, code: str = None, state: str = None):
             "Accept": "application/json"
         }
         
-        print(f"Validating token with URL: {validate_url}")
-        print(f"Validation headers: {headers}")
-        
         validate_response = requests.get(validate_url, headers=headers, verify=False)
-        print(f"Validation response status: {validate_response.status_code}")
-        print(f"Validation response headers: {validate_response.headers}")
-        print(f"Validation response body: {validate_response.text}")
         
         if validate_response.status_code != 200:
-            print(f"Token validation failed: {validate_response.status_code} - {validate_response.text}")
             raise HTTPException(status_code=400, detail="Invalid access token")
             
-        print("Token validated successfully")
-        
         # Get user information
         user_info = get_user_info(access_token)
         if not user_info:
             raise HTTPException(status_code=400, detail="Failed to get user information")
         
-        return {
+        response_data = {
             "access_token": access_token,
             "expires_in": token_data.get("expires_in"),
             "refresh_token": token_data.get("refresh_token"),
@@ -117,12 +97,32 @@ def jira_auth_callback(request: Request, code: str = None, state: str = None):
             "token_type": token_data.get("token_type"),
             "user": user_info
         }
+        
+        return JSONResponse(
+            content=response_data,
+            headers={
+                "Access-Control-Allow-Origin": "https://local.myapp.com:3000",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Accept"
+            }
+        )
     except requests.exceptions.RequestException as e:
-        print(f"Request error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to communicate with Jira: {str(e)}")
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+@router.options("/auth/callback")
+async def options_callback():
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "https://local.myapp.com:3000",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Accept"
+        }
+    )
 
 @router.post("/auth/refresh")
 async def refresh_token(request: Request):
@@ -149,7 +149,6 @@ async def refresh_token(request: Request):
         )
         
         if token_response.status_code != 200:
-            print(f"Token refresh error: {token_response.status_code} - {token_response.text}")
             raise HTTPException(
                 status_code=token_response.status_code, 
                 detail=f"Failed to refresh token: {token_response.text}"

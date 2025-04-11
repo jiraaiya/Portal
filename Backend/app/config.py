@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     # Frontend URL
     frontend_url: str = os.getenv("FRONTEND_URL", "https://local.myapp.com:3000")
 
+    # Database settings
+    database_url: str = os.getenv("DATABASE_URL")
+    database_echo: bool = os.getenv("DATABASE_ECHO", "False").lower() == "true"
+
     class Config:
         env_file = ".env"
+        extra = "allow"  # Allow extra fields
 
 @lru_cache()
 def get_settings():

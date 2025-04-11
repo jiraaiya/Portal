@@ -8,6 +8,8 @@
   src: url('/fonts/IRANYekanWebRegular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF; /* Persian/Arabic range */
 }
 
 @font-face {
@@ -15,6 +17,8 @@
   src: url('/fonts/IRANYekanWebThin.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF; /* Persian/Arabic range */
 }
 
 @font-face {
@@ -22,6 +26,8 @@
   src: url('/fonts/IRANYekanWebLight.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF; /* Persian/Arabic range */
 }
 
 *,
@@ -34,7 +40,7 @@
 
 body {
   direction: rtl;  /* Right-to-Left layout */
-  font-family: 'IranYekan', sans-serif;
+  font-family: 'IranYekan', 'Vazirmatn', sans-serif;
   font-weight: 400;
   background-color: #f4f4f4;
   color: #333;
